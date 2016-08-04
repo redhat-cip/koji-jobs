@@ -21,19 +21,28 @@
 
 source ./rpm-koji-gating-lib.common
 
-echo "\n\n=== Wait for other belonging jobs for this change to finish ==="
 
-# Wait for other job to finish
-# We want to make sure all jobs belonging to this change
-# finish prior to run the "non scratch" build on Koji
-# Furthermore we want to wait for the change to be on top
-# of the shared queue before we start the build on koji
-# wait_for_other_jobs.py handles the condition of releasing
-# the wait.
-[ -x /usr/local/bin/wait_for_other_jobs.py ] && /usr/local/bin/wait_for_other_jobs.py
+# The wait_for_other_jobs.py is deactivated atm as the gating
+# does not run any functionnal testing code. This should be
+# activated if we intend to run real validation jobs in order to be sure
+# the CBS non-scratch build starts after the ends of the other
+# validation jobs.
+
+#echo "\n\n=== Wait for other belonging jobs for this change to finish ==="
+#
+## Wait for other job to finish
+## We want to make sure all jobs belonging to this change
+## finish prior to run the "non scratch" build on Koji
+## Furthermore we want to wait for the change to be on top
+## of the shared queue before we start the build on koji
+## wait_for_other_jobs.py handles the condition of releasing
+## the wait.
+#[ -x /usr/local/bin/wait_for_other_jobs.py ] && /usr/local/bin/wait_for_other_jobs.py
 
 # We are there so all voting jobs finished with success
-echo "\n===  Start publish RPMS for job ${ZUUL_PROJECT} ==="
+
+
+echo "\n===  Clone project ${ZUUL_PROJECT} ==="
 
 # Clean previous run
 sanitize
@@ -41,6 +50,24 @@ sanitize
 # Fetch all involved projects
 echo -e "\n--- Fetch $ZUUL_PROJECT at the right revision ---"
 zuul-cloner --workspace $workdir $rpmfactory_clone_url $ZUUL_PROJECT
+
+
+echo "\n===  Check project NVR change ==="
+
+pushd ${workdir}/$ZUUL_PROJECT > /dev/null
+spec=$(ls *.spec)
+git --no-pager show HEAD^1:$spec > /tmp/${spec}_prev
+rpmdev-vercmp $(rpm -q --specfile $spec) $(rpm -q --specfile /tmp/${spec}_prev)
+if [ "$?" = "0" ]; then
+    echo "No NVR change detected. Nothing to do ! Exit 0"
+    exit 0
+else
+    echo "NVR has changed. Start CBS non-scratch build ..."
+fi
+popd > /dev/null
+
+
+echo "\n===  Start publish RPMS for project ${ZUUL_PROJECT} ==="
 
 # Build all SRPMS
 echo -e "\n--- Build SRPM for $ZUUL_PROJECT ---"
