@@ -57,6 +57,7 @@ echo "\n===  Check project NVR change ==="
 pushd ${workdir}/$ZUUL_PROJECT > /dev/null
 spec=$(ls *.spec)
 git --no-pager show HEAD^1:$spec > /tmp/${spec}_prev
+set +e
 rpmdev-vercmp $(rpm -q --specfile $spec) $(rpm -q --specfile /tmp/${spec}_prev)
 if [ "$?" = "0" ]; then
     echo "No NVR change detected. Nothing to do ! Exit 0"
@@ -64,8 +65,8 @@ if [ "$?" = "0" ]; then
 else
     echo "NVR has changed. Start CBS non-scratch build ..."
 fi
+set -e
 popd > /dev/null
-
 
 echo "\n===  Start publish RPMS for project ${ZUUL_PROJECT} ==="
 
