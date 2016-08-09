@@ -88,7 +88,7 @@ function sanitize() {
 function build_srpm() {
   spectool -g ./*.spec -C ${rpmbuild}/SOURCES/
   rsync --exclude="*.spec" ./* ${rpmbuild}/SOURCES/
-  rpmbuild_output=$(rpmbuild -bs ./*.spec)
+  rpmbuild_output=$(rpmbuild --define 'dist .el7' -bs ./*.spec)
 }
 
 function start_build_on_koji() {
