@@ -58,7 +58,7 @@ pushd ${workdir}/$ZUUL_PROJECT > /dev/null
 spec=$(ls *.spec)
 git --no-pager show HEAD^1:$spec > /tmp/${spec}_prev
 set +e
-rpmdev-vercmp $(rpm -q --specfile $spec) $(rpm -q --specfile /tmp/${spec}_prev)
+rpmdev-vercmp $(rpm -q --specfile $spec | head -n1) $(rpm -q --specfile /tmp/${spec}_prev | head -n1)
 status_code="$?"
 case $status_code in
     0)
