@@ -63,12 +63,14 @@ status_code="$?"
 case $status_code in
     0)
         echo "No NVR change detected. Nothing to do ! Exit 0"
+        exit 0
         ;;
     1[12])
         echo "NVR has changed. Start CBS non-scratch build ..."
         ;;
     *)
-        echo "Error in NVR change checking"
+        echo "Error in NVR change checking ! Exit 0"
+        exit 0
         ;;
 esac
 set -e
