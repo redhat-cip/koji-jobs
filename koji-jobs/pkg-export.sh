@@ -59,12 +59,18 @@ spec=$(ls *.spec)
 git --no-pager show HEAD^1:$spec > /tmp/${spec}_prev
 set +e
 rpmdev-vercmp $(rpm -q --specfile $spec) $(rpm -q --specfile /tmp/${spec}_prev)
-if [ "$?" = "0" ]; then
-    echo "No NVR change detected. Nothing to do ! Exit 0"
-    exit 0
-else
-    echo "NVR has changed. Start CBS non-scratch build ..."
-fi
+status_code="$?"
+case $status_code in
+    0)
+        echo "No NVR change detected. Nothing to do ! Exit 0"
+        ;;
+    1[12])
+        echo "NVR has changed. Start CBS non-scratch build ..."
+        ;;
+    *)
+        echo "Error in NVR change checking"
+        ;;
+esac
 set -e
 popd > /dev/null
 
