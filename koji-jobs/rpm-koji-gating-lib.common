@@ -113,14 +113,16 @@ function check_build_on_koji() {
   local tid=$(cat $workdir/tid)
   $koji_cmd taskinfo -vr "$tid" &> $workdir/task_status_output
   state=$(egrep "^State:" $workdir/task_status_output | awk -F': ' '{print $2}')
-  if [ "$state" = "failed" ]; then
+  nvr=$(sed -n 's@Source:.*/\(.*\).src.rpm@\1@p' $workdir/task_status_output)
+  check_existing_build=$($koji_cmd buildinfo $nvr | awk '/State:/ { print $2 }')
+  if [ "$state" = "failed" -a "$check_existing_build" != "COMPLETE" ]; then
     echo "Task $tid failed with status: $state"
     touch $workdir/failed
   fi
   if [ "$state" = "open" -o "$state" == "free" ]; then
     echo "Task $tid is processing: $state ..."
   fi
-  if [ "$state" = "closed" ]; then
+  if [ "$state" = "closed" -o "$check_existing_build" == "COMPLETE" ]; then
     echo "Task $tid is done: $state ..."
     touch $workdir/built
   fi
