@@ -14,9 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# base.sh is the base preparation file for Software Factory slaves
-. base.sh
-
 # Install dependencies
 sudo yum install -y koji centos-packager wget rpmdevtools \
                     rpm-build redhat-rpm-config mock rsync \
