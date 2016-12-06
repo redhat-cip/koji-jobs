@@ -94,17 +94,17 @@ start_build_on_koji $srpm $ZUUL_PROJECT ""
 
 # Check build status koji side
 while check_build_on_koji $ZUUL_PROJECT; do
-  echo -e "\n--- Check koji build for $ZUUL_PROJECT ---"
-  if [ ! -f "$workdir/${ZUUL_PROJECT}_meta/built" ]; then
-    if [ -f "$workdir/${ZUUL_PROJECT}_meta/failed" ]; then
-      echo -e "\n Build failed. Package not exported. Exit 1 !"
-      exit 1
+    echo -e "\n--- Check koji build for $ZUUL_PROJECT ---"
+    if [ ! -f "$workdir/${ZUUL_PROJECT}_meta/built" ]; then
+        if [ -f "$workdir/${ZUUL_PROJECT}_meta/failed" ]; then
+            echo -e "\n Build failed. Package not exported. Exit 1 !"
+            exit 1
+        fi
+    else
+        break
     fi
-  else
-    break
-  fi
-  echo "Waiting ..."
-  sleep 30
+    echo "Waiting ..."
+    sleep 30
 done
 
 echo -e "\n Build succeed. Package exported."
