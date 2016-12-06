@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exit 0
+exec bash8 koji-jobs/* image/*

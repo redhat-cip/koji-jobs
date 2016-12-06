@@ -64,8 +64,8 @@ zuul_ref=$(echo $ZUUL_REF |awk -F/ '{print $NF}')
 validatedurl="${koji_topurl}/repos/${target_label}-build/latest/x86_64/"
 
 [ -z "${WORKSPACE}" ] && {
-  echo "Please set WORKSPACE environment variable"
-  exit 1
+    echo "Please set WORKSPACE environment variable"
+    exit 1
 }
 
 workdir="${WORKSPACE}/build_env/"
@@ -76,160 +76,160 @@ url="file://$temprepopath"
 # ZUUL_CHANGES contains changes that must be included in that job
 CHANGES=(${ZUUL_CHANGES//^/ })
 
-function sanitize() {
-  [ -d "${rpmbuild}" ] && rm -Rf "${rpmbuild}"
-  rpmdev-setuptree
-  [ -d "${workdir}" ] && rm -Rf "${workdir}"
-  mkdir -p $workdir
-  [ -d ${temprepopath} ] && rm -Rf ${temprepopath}
-  mkdir -p $temprepopath
+function sanitize {
+    [ -d "${rpmbuild}" ] && rm -Rf "${rpmbuild}"
+    rpmdev-setuptree
+    [ -d "${workdir}" ] && rm -Rf "${workdir}"
+    mkdir -p $workdir
+    [ -d ${temprepopath} ] && rm -Rf ${temprepopath}
+    mkdir -p $temprepopath
 }
 
-function build_srpm() {
-  spectool -g ./*.spec -C ${rpmbuild}/SOURCES/
-  rsync --exclude="*.spec" ./* ${rpmbuild}/SOURCES/
-  rpmbuild_output=$(rpmbuild --define 'dist .el7' -bs ./*.spec)
+function build_srpm {
+    spectool -g ./*.spec -C ${rpmbuild}/SOURCES/
+    rsync --exclude="*.spec" ./* ${rpmbuild}/SOURCES/
+    rpmbuild_output=$(rpmbuild --define 'dist .el7' -bs ./*.spec)
 }
 
-function check_existing_build_on_koji() {
-  local workdir=$1
-  local nvr=$2
-  $koji_cmd buildinfo $nvr &> $workdir/check_existing_build_output
-  tid=$(awk '/Task:/ { print $2 }' $workdir/check_existing_build_output)
-  state=$(awk '/State:/ { print $2 }' $workdir/check_existing_build_output)
-  if [ "${state,,}" = "complete" ]; then
-    echo "$tid"
-  else
-    echo "KO"
-  fi
-}
-
-
-function start_build_on_koji() {
-  local srpm=$1
-  local project=$2
-  local workdir="$workdir/${2}_meta"
-  [ ! -d ${workdir} ] && mkdir -p ${workdir}
-  local mode="$3"
-  local nvr=$(basename $srpm .src.rpm)
-  local tid=$(check_existing_build_on_koji $workdir $nvr)
-  if [[ ! $mode =~ ".*--scratch.*" ]] && [[ $tid != "KO" ]]; then
-    echo "Package $nvr already built by task $tid"
-    echo "$tid" > $workdir/tid
-    return 0
-  fi
-  echo "Start build of: $srpm"
-  set +e
-  $koji_cmd build $mode "$target_label" "$srpm" &> $workdir/task_build_output
-  set -e
-  tid=$(grep 'Created' $workdir/task_build_output | awk -F': ' '{print $2}')
-  echo "$tid" > $workdir/tid
-  echo "Task id is: $tid"
-  echo "Task console is: ${koji_ui_tasks_uri}${tid}"
-}
-
-function check_build_on_koji() {
-  local project=$1
-  local workdir="$workdir/${project}_meta"
-  local tid=$(cat $workdir/tid)
-  $koji_cmd taskinfo -vr "$tid" &> $workdir/task_status_output
-  state=$(egrep "^State:" $workdir/task_status_output | awk -F': ' '{print $2}')
-  nvr=$(sed -n 's@Source:.*/\(.*\).src.rpm@\1@p' $workdir/task_status_output)
-
-  case "${state,,}" in
-    "failed")
-      echo "Task $tid failed with status: $state"
-      touch $workdir/failed
-      ;;
-    "open" | "free")
-      echo "Task $tid is processing: $state ..."
-      ;;
-    "closed" | "complete")
-      echo "Task $tid is done: $state ..."
-      touch $workdir/built
-      ;;
-    *)
-      echo "Unknown status for task $tid"
-      ;;
-  esac
-}
-
-function fetch_projects() {
-  echo -e "\n--- Fetch $project at the right revision ---"
-  for chg in ${CHANGES[@]}; do
-    project=$(echo $chg | cut -d':' -f1)
-    zuul-cloner --workspace $workdir $rpmfactory_clone_url $project
-  done
-}
-
-function build_srpms() {
-  for chg in ${CHANGES[@]}; do
-    project=$(echo $chg | cut -d':' -f1)
-    echo -e "\n--- Build SRPM for $project ---"
-    pushd "${workdir}/${project}" > /dev/null
-    git log --simplify-merges -n1
-    build_srpm
-    fpname=$(echo $rpmbuild_output | awk -F'/' '{print $NF}')
-    pname=$(python -c "import sys; from rpmUtils.miscutils import splitFilename; print splitFilename(sys.argv[1])[0]" $fpname)
-    popd > /dev/null
-    mkdir -p "${workdir}/${project}_meta/"
-    echo $pname > "${workdir}/${project}_meta/pname"
-  done
-}
-
-function build_all_on_koji() {
-  mode="--scratch"
-  for chg in ${CHANGES[@]}; do
-    project=$(echo $chg | cut -d':' -f1)
-    echo -e "\n--- Start koji build for $project ---"
-    pname=$(cat ${workdir}/${project}_meta/pname)
-    srpm=$(ls ${rpmbuild}/SRPMS/${pname}*.src.rpm)
-    start_build_on_koji $srpm $project $mode
-  done
-}
-
-function wait_for_all_built_on_koji() {
-  while true; do
-    allbuilt=true
-    for chg in ${CHANGES[@]}; do
-      project=$(echo $chg | cut -d':' -f1)
-      echo -e "\n--- Check koji build for $project ---"
-      if [ ! -f "$workdir/${project}_meta/built" ]; then
-        allbuilt=false
-        check_build_on_koji $project
-        if [ -f "$workdir/${project}_meta/failed" ]; then
-          echo "Build of project $project failed. Abort !"
-          exit 1
-        fi
-      else
-        echo "Already built. Skip."
-      fi
-    done
-    if $allbuilt; then
-      echo "All packages have been built"
-      break
+function check_existing_build_on_koji {
+    local workdir=$1
+    local nvr=$2
+    $koji_cmd buildinfo $nvr &> $workdir/check_existing_build_output
+    tid=$(awk '/Task:/ { print $2 }' $workdir/check_existing_build_output)
+    state=$(awk '/State:/ { print $2 }' $workdir/check_existing_build_output)
+    if [ "${state,,}" = "complete" ]; then
+        echo "$tid"
+    else
+        echo "KO"
     fi
-    sleep 10
-  done
 }
 
-function fetch_rpms() {
-  pushd $temprepopath > /dev/null
-  for chg in ${CHANGES[@]}; do
-    project=$(echo $chg | cut -d':' -f1)
-    echo -e "\n--- Fetchs RPMs for $project ---"
-    tid=$(cat $workdir/${project}_meta/tid)
-    $koji_cmd download-task $tid
-  done
-  popd 
+
+function start_build_on_koji {
+    local srpm=$1
+    local project=$2
+    local workdir="$workdir/${2}_meta"
+    [ ! -d ${workdir} ] && mkdir -p ${workdir}
+    local mode="$3"
+    local nvr=$(basename $srpm .src.rpm)
+    local tid=$(check_existing_build_on_koji $workdir $nvr)
+    if [[ ! $mode =~ ".*--scratch.*" ]] && [[ $tid != "KO" ]]; then
+        echo "Package $nvr already built by task $tid"
+        echo "$tid" > $workdir/tid
+        return 0
+    fi
+    echo "Start build of: $srpm"
+    set +e
+    $koji_cmd build $mode "$target_label" "$srpm" &> $workdir/task_build_output
+    set -e
+    tid=$(grep 'Created' $workdir/task_build_output | awk -F': ' '{print $2}')
+    echo "$tid" > $workdir/tid
+    echo "Task id is: $tid"
+    echo "Task console is: ${koji_ui_tasks_uri}${tid}"
 }
 
-function create_local_repo() {
-  echo -e "\n--- Create a local repository ---"
-  createrepo $temprepopath
-  find $temprepopath
-  # Build release RPM with temporary repo included
-  $currentdir/build-release-rpm.sh $url $validatedurl &> /dev/null
-  rm build-temp-release.spec
+function check_build_on_koji {
+    local project=$1
+    local workdir="$workdir/${project}_meta"
+    local tid=$(cat $workdir/tid)
+    $koji_cmd taskinfo -vr "$tid" &> $workdir/task_status_output
+    state=$(egrep "^State:" $workdir/task_status_output | awk -F': ' '{print $2}')
+    nvr=$(sed -n 's@Source:.*/\(.*\).src.rpm@\1@p' $workdir/task_status_output)
+
+    case "${state,,}" in
+        "failed")
+            echo "Task $tid failed with status: $state"
+            touch $workdir/failed
+        ;;
+        "open" | "free")
+            echo "Task $tid is processing: $state ..."
+        ;;
+        "closed" | "complete")
+            echo "Task $tid is done: $state ..."
+            touch $workdir/built
+        ;;
+        *)
+            echo "Unknown status for task $tid"
+        ;;
+    esac
+}
+
+function fetch_projects {
+    echo -e "\n--- Fetch $project at the right revision ---"
+    for chg in ${CHANGES[@]}; do
+        project=$(echo $chg | cut -d':' -f1)
+        zuul-cloner --workspace $workdir $rpmfactory_clone_url $project
+    done
+}
+
+function build_srpms {
+    for chg in ${CHANGES[@]}; do
+        project=$(echo $chg | cut -d':' -f1)
+        echo -e "\n--- Build SRPM for $project ---"
+        pushd "${workdir}/${project}" > /dev/null
+        git log --simplify-merges -n1
+        build_srpm
+        fpname=$(echo $rpmbuild_output | awk -F'/' '{print $NF}')
+        pname=$(python -c "import sys; from rpmUtils.miscutils import splitFilename; print splitFilename(sys.argv[1])[0]" $fpname)
+        popd > /dev/null
+        mkdir -p "${workdir}/${project}_meta/"
+        echo $pname > "${workdir}/${project}_meta/pname"
+    done
+}
+
+function build_all_on_koji {
+    mode="--scratch"
+    for chg in ${CHANGES[@]}; do
+        project=$(echo $chg | cut -d':' -f1)
+        echo -e "\n--- Start koji build for $project ---"
+        pname=$(cat ${workdir}/${project}_meta/pname)
+        srpm=$(ls ${rpmbuild}/SRPMS/${pname}*.src.rpm)
+        start_build_on_koji $srpm $project $mode
+    done
+}
+
+function wait_for_all_built_on_koji {
+    while true; do
+        allbuilt=true
+        for chg in ${CHANGES[@]}; do
+            project=$(echo $chg | cut -d':' -f1)
+            echo -e "\n--- Check koji build for $project ---"
+            if [ ! -f "$workdir/${project}_meta/built" ]; then
+                allbuilt=false
+                check_build_on_koji $project
+                if [ -f "$workdir/${project}_meta/failed" ]; then
+                    echo "Build of project $project failed. Abort !"
+                    exit 1
+                fi
+            else
+                echo "Already built. Skip."
+            fi
+        done
+        if $allbuilt; then
+            echo "All packages have been built"
+            break
+        fi
+        sleep 10
+    done
+}
+
+function fetch_rpms {
+    pushd $temprepopath > /dev/null
+    for chg in ${CHANGES[@]}; do
+        project=$(echo $chg | cut -d':' -f1)
+        echo -e "\n--- Fetchs RPMs for $project ---"
+        tid=$(cat $workdir/${project}_meta/tid)
+        $koji_cmd download-task $tid
+    done
+    popd
+}
+
+function create_local_repo {
+    echo -e "\n--- Create a local repository ---"
+    createrepo $temprepopath
+    find $temprepopath
+    # Build release RPM with temporary repo included
+    $currentdir/build-release-rpm.sh $url $validatedurl &> /dev/null
+    rm build-temp-release.spec
 }
 
