@@ -50,15 +50,14 @@ if [ -z "$koji_topurl" ]; then
     exit 1
 fi
 
-sf_server="${SF_HOST}"
-if [ -z "$sf_server" ]; then
-    echo "Please provide the FQDN to SF via the SF_HOST environment variable"
+repos_clone_url="${REPOS_CLONE_URL}"
+if [ -z "$repos_clone_url" ]; then
+    echo "Please provide the URL to clone repo via the REPOS_CLONE_URL environment variable"
     exit 1
 fi
 
 currentdir=$(dirname "$0")
 koji_ui_tasks_uri="${koji_weburl}/taskinfo?taskID="
-sf_clone_url="http://${sf_server}/r"
 rpmbuild="${HOME}/rpmbuild"
 
 zuul_ref=$(echo $ZUUL_REF |awk -F/ '{print $NF}')
@@ -159,7 +158,7 @@ function fetch_projects {
     echo -e "\n--- Fetch $project at the right revision ---"
     for chg in ${CHANGES[@]}; do
         project=$(echo $chg | cut -d':' -f1)
-        zuul-cloner --workspace $workdir $sf_clone_url $project
+        zuul-cloner --workspace $workdir $repos_clone_url $project
     done
 }
 
