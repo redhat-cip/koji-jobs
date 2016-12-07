@@ -18,8 +18,8 @@
 # DEBUG=1 WORKSPACE=/tmp/workspace_sim ZUUL_CHANGES=aodh-distgit:xyz^cinderclient-distgit:rdo-liberty:xyz \
 # ZUUL_BRANCH=rdo-liberty ZUUL_URL=http://rpmfactory.beta.rdoproject.org/zuul/p ZUUL_REF="" pkg-validate.sh
 
-
-source ./rpm-koji-gating-lib.common
+install_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $install_path/rpm-koji-gating-lib.common
 
 echo -e "\n\n=== Start job for ${ZUUL_PROJECT} ==="
 

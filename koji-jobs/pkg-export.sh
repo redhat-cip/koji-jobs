@@ -19,8 +19,8 @@
 # ZUUL_BRANCH=rdo-liberty ZUUL_URL=http://rpmfactory.beta.rdoproject.org/zuul/p ZUUL_REF="" \
 # ZUUL_PROJECT=aodh-distgit pkg-export.sh
 
-source ./rpm-koji-gating-lib.common
-
+install_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $install_path/rpm-koji-gating-lib.common
 
 # The wait_for_other_jobs.py is deactivated atm as the gating
 # does not run any functionnal testing code. This should be
@@ -49,7 +49,7 @@ sanitize
 
 # Fetch all involved projects
 echo -e "\n--- Fetch $ZUUL_PROJECT at the right revision ---"
-zuul-cloner --workspace $workdir $rpmfactory_clone_url $ZUUL_PROJECT
+zuul-cloner --workspace $workdir $repos_clone_url $ZUUL_PROJECT
 
 
 echo "\n===  Check project NVR change ==="
