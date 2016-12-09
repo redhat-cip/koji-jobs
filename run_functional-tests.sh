@@ -60,3 +60,6 @@ sudo ./install.sh
 
 # Run scenario 1
 ./test-scenario_1.sh
+
+# Run scenario 2
+./test-scenario_2.sh
